@@ -18,3 +18,12 @@ export interface Event {
     location: string;
     created_at: string;
 }
+
+export interface Todo {
+    id: string;
+    user_id: string;
+    title: string;
+    completed: boolean;
+    type: 'big' | 'medium' | 'small';
+    created_at: string;
+}
