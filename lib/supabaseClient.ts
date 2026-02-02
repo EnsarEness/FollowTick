@@ -10,23 +10,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Type definitions for our database tables
-export type TodoStatus = 'todo' | 'done';
-export type TodoType = 'big_mission' | 'medium' | 'small';
-
-export interface Todo {
-    id: string;
-    title: string;
-    status: TodoStatus;
-    type: TodoType;
-    created_at: string;
-}
-
-export type EventStatus = 'applying' | 'building' | 'submitted';
-
 export interface Event {
     id: string;
-    title: string;
-    deadline_date: string;
-    status: EventStatus;
+    user_id: string;
+    name: string;
+    deadline: string;
+    location: string;
     created_at: string;
 }
