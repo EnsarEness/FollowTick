@@ -40,9 +40,18 @@ export function TodaysMission() {
 
     const toggleTodo = async (id: string, currentStatus: boolean) => {
         try {
+            const updateData: any = { completed: !currentStatus };
+
+            // Set completed_at when completing, null when uncompleting
+            if (!currentStatus) {
+                updateData.completed_at = new Date().toISOString();
+            } else {
+                updateData.completed_at = null;
+            }
+
             const { error } = await supabase
                 .from("todos")
-                .update({ completed: !currentStatus })
+                .update(updateData)
                 .eq("id", id);
 
             if (error) throw error;

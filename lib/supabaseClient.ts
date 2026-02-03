@@ -26,4 +26,20 @@ export interface Todo {
     completed: boolean;
     type: 'big' | 'medium' | 'small';
     created_at: string;
+    completed_at?: string;
+}
+
+export interface FocusSession {
+    id: string;
+    user_id: string;
+    duration_minutes: number;
+    started_at: string;
+    created_at: string;
+}
+
+export interface WeeklyStats {
+    completed_tasks_count: number;
+    focus_hours: number;
+    streak_days: number;
+    completion_rate: number;
 }
