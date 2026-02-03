@@ -1,16 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Timer } from "lucide-react";
+import { Timer, Calendar } from "lucide-react";
 import { MorningBriefing } from "@/components/dashboard/MorningBriefing";
 import { HackathonRadar } from "@/components/dashboard/HackathonRadar";
 import { TodaysMission } from "@/components/dashboard/TodaysMission";
 import { WeeklyReview } from "@/components/dashboard/WeeklyReview";
 import { FocusTimer } from "@/components/FocusTimer";
+import { CalendarModal } from "@/components/CalendarModal";
 
 export default function Home() {
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [showFocusTimer, setShowFocusTimer] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   return (
     <main className="min-h-screen p-4 md:p-6 lg:p-8">
@@ -32,13 +34,23 @@ export default function Home() {
               </p>
             </div>
 
-            <button
-              onClick={() => setShowFocusTimer(true)}
-              className="flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors"
-            >
-              <Timer className="h-4 w-4" />
-              Focus Mode
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowCalendar(true)}
+                className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+              >
+                <Calendar className="h-4 w-4" />
+                Calendar
+              </button>
+
+              <button
+                onClick={() => setShowFocusTimer(true)}
+                className="flex items-center gap-2 rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white hover:bg-purple-700 transition-colors"
+              >
+                <Timer className="h-4 w-4" />
+                Focus Mode
+              </button>
+            </div>
           </div>
         </header>
 
@@ -61,6 +73,11 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      <CalendarModal
+        isOpen={showCalendar}
+        onClose={() => setShowCalendar(false)}
+      />
 
       <FocusTimer
         isOpen={showFocusTimer}
