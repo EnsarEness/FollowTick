@@ -1,15 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Target, CheckCircle2, Circle, Plus, Trash2, Loader2 } from "lucide-react";
+import { Target, CheckCircle2, Circle, Plus, Trash2, Loader2, ChevronDown } from "lucide-react";
 import { supabase, Todo } from "@/lib/supabaseClient";
 import { AddTodoDialog } from "./AddTodoDialog";
 
-export function TodaysMission() {
+interface TodaysMissionProps {
+    focusMode?: boolean;
+}
+
+export function TodaysMission({ focusMode = false }: TodaysMissionProps) {
     const [todos, setTodos] = useState<Todo[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [dialogType, setDialogType] = useState<'big' | 'medium' | 'small'>('medium');
+    const [showCompleted, setShowCompleted] = useState(false);
 
     const fetchTodos = async () => {
         try {
@@ -86,9 +91,10 @@ export function TodaysMission() {
     };
 
     const bigTodo = todos.find(t => t.type === 'big' && !t.completed);
-    const mediumTodos = todos.filter(t => t.type === 'medium');
-    const smallTodos = todos.filter(t => t.type === 'small');
-    const completedCount = todos.filter(t => t.completed).length;
+    const mediumTodos = todos.filter(t => t.type === 'medium' && !t.completed);
+    const smallTodos = todos.filter(t => t.type === 'small' && !t.completed);
+    const completedTodos = todos.filter(t => t.completed);
+    const completedCount = completedTodos.length;
     const totalCount = todos.length;
     const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
 
@@ -135,14 +141,6 @@ export function TodaysMission() {
                     <Target className="h-5 w-5 text-slate-400" />
                     <h2 className="text-xl font-semibold text-slate-50">Bugünün Görevi</h2>
                 </div>
-                <button
-                    onClick={clearCompleted}
-                    disabled={completedCount === 0}
-                    className="flex items-center gap-1 rounded-md bg-slate-800 px-3 py-1.5 text-xs font-medium text-slate-400 hover:bg-slate-700 hover:text-slate-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Clear Completed
-                </button>
             </div>
 
             <div className="flex-1 overflow-auto space-y-6">
@@ -172,60 +170,94 @@ export function TodaysMission() {
                 </div>
 
                 {/* Medium Tasks */}
-                <div>
-                    <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-sm font-medium text-blue-400 uppercase tracking-wider">
-                            📋 Medium Tasks (3)
-                        </h3>
-                        <button
-                            onClick={() => openDialog('medium')}
-                            className="text-slate-500 hover:text-slate-300 transition-colors"
-                        >
-                            <Plus className="h-4 w-4" />
-                        </button>
-                    </div>
-                    <div className="space-y-2">
-                        {mediumTodos.slice(0, 3).map(todo => (
-                            <TodoItem key={todo.id} todo={todo} />
-                        ))}
-                        {mediumTodos.length < 3 && (
-                            <div
+                {!focusMode && (
+                    <div>
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-sm font-medium text-blue-400 uppercase tracking-wider">
+                                📋 Medium Tasks ({mediumTodos.length}/3)
+                            </h3>
+                            <button
                                 onClick={() => openDialog('medium')}
-                                className="p-3 rounded-md border border-dashed border-slate-700 hover:border-blue-500/50 transition-colors cursor-pointer text-center"
+                                className="text-slate-500 hover:text-slate-300 transition-colors"
                             >
-                                <p className="text-xs text-slate-500">Add medium task</p>
-                            </div>
-                        )}
+                                <Plus className="h-4 w-4" />
+                            </button>
+                        </div>
+                        <div className="space-y-2">
+                            {mediumTodos.slice(0, 3).map(todo => (
+                                <TodoItem key={todo.id} todo={todo} />
+                            ))}
+                            {mediumTodos.length < 3 && (
+                                <div
+                                    onClick={() => openDialog('medium')}
+                                    className="p-3 rounded-md border border-dashed border-slate-700 hover:border-blue-500/50 transition-colors cursor-pointer text-center"
+                                >
+                                    <p className="text-xs text-slate-500">Add medium task</p>
+                                </div>
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* Small Chores */}
-                <div>
-                    <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-sm font-medium text-emerald-400 uppercase tracking-wider">
-                            ✅ Small Chores (5)
-                        </h3>
-                        <button
-                            onClick={() => openDialog('small')}
-                            className="text-slate-500 hover:text-slate-300 transition-colors"
-                        >
-                            <Plus className="h-4 w-4" />
-                        </button>
-                    </div>
-                    <div className="space-y-2">
-                        {smallTodos.slice(0, 5).map(todo => (
-                            <TodoItem key={todo.id} todo={todo} />
-                        ))}
-                        {smallTodos.length < 5 && (
-                            <div
+                {!focusMode && (
+                    <div>
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-sm font-medium text-emerald-400 uppercase tracking-wider">
+                                ✅ Small Chores ({smallTodos.length}/5)
+                            </h3>
+                            <button
                                 onClick={() => openDialog('small')}
-                                className="p-2 rounded-md border border-dashed border-slate-700 hover:border-emerald-500/50 transition-colors cursor-pointer text-center"
+                                className="text-slate-500 hover:text-slate-300 transition-colors"
                             >
-                                <p className="text-xs text-slate-500">Add small chore</p>
+                                <Plus className="h-4 w-4" />
+                            </button>
+                        </div>
+                        <div className="space-y-2">
+                            {smallTodos.slice(0, 5).map(todo => (
+                                <TodoItem key={todo.id} todo={todo} />
+                            ))}
+                            {smallTodos.length < 5 && (
+                                <div
+                                    onClick={() => openDialog('small')}
+                                    className="p-2 rounded-md border border-dashed border-slate-700 hover:border-emerald-500/50 transition-colors cursor-pointer text-center"
+                                >
+                                    <p className="text-xs text-slate-500">Add small chore</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Completed Tasks */}
+                {!focusMode && completedTodos.length > 0 && (
+                    <div className="pt-4 border-t border-slate-800">
+                        <button
+                            onClick={() => setShowCompleted(!showCompleted)}
+                            className="flex items-center justify-between w-full mb-3 group"
+                        >
+                            <h3 className="text-sm font-medium text-slate-500 uppercase tracking-wider">
+                                ✓ Tamamlanan ({completedTodos.length})
+                            </h3>
+                            <ChevronDown className={`h-4 w-4 text-slate-500 transition-transform ${showCompleted ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {showCompleted && (
+                            <div className="space-y-2">
+                                {completedTodos.map(todo => (
+                                    <TodoItem key={todo.id} todo={todo} />
+                                ))}
+                                <button
+                                    onClick={clearCompleted}
+                                    className="w-full mt-3 flex items-center justify-center gap-1 rounded-md bg-slate-800 px-3 py-2 text-xs font-medium text-slate-400 hover:bg-slate-700 hover:text-slate-300 transition-colors"
+                                >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    Clear Completed
+                                </button>
                             </div>
                         )}
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Progress */}
@@ -253,4 +285,3 @@ export function TodaysMission() {
         </div>
     );
 }
-
