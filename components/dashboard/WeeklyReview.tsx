@@ -1,16 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TrendingUp, Activity, Award, Loader2, AlertCircle } from "lucide-react";
+import { TrendingUp, Activity, Award, Loader2, AlertCircle, BarChart3 } from "lucide-react";
 import { supabase, WeeklyStats } from "@/lib/supabaseClient";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { startOfWeek, endOfWeek, eachDayOfInterval, format, isSameDay } from 'date-fns';
+
+interface DailyCompletion {
+    day: string;
+    count: number;
+}
 
 export function WeeklyReview() {
     const [stats, setStats] = useState<WeeklyStats | null>(null);
+    const [dailyData, setDailyData] = useState<DailyCompletion[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
 
     useEffect(() => {
         fetchWeeklyStats();
+        fetchDailyCompletions();
     }, []);
 
     const fetchWeeklyStats = async () => {
@@ -30,6 +39,46 @@ export function WeeklyReview() {
             setError(true);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchDailyCompletions = async () => {
+        try {
+            const mockUserId = "00000000-0000-0000-0000-000000000000";
+            const now = new Date();
+            const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
+            const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+
+            // Fetch all completed todos from this week
+            const { data: todos, error } = await supabase
+                .from("todos")
+                .select("completed_at")
+                .eq("user_id", mockUserId)
+                .eq("completed", true)
+                .not("completed_at", "is", null)
+                .gte("completed_at", weekStart.toISOString())
+                .lte("completed_at", weekEnd.toISOString());
+
+            if (error) throw error;
+
+            // Get all days of the week
+            const daysOfWeek = eachDayOfInterval({ start: weekStart, end: weekEnd });
+
+            // Count completions per day
+            const dailyCounts = daysOfWeek.map(day => {
+                const count = todos?.filter(todo =>
+                    isSameDay(new Date(todo.completed_at!), day)
+                ).length || 0;
+
+                return {
+                    day: format(day, 'EEE'), // Mon, Tue, Wed...
+                    count
+                };
+            });
+
+            setDailyData(dailyCounts);
+        } catch (err) {
+            console.error("Error fetching daily completions:", err);
         }
     };
 
@@ -74,56 +123,89 @@ export function WeeklyReview() {
             </div>
 
             <div className="space-y-6">
-                {/* Completed Tasks */}
-                <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs text-slate-500">Tamamlanan Görevler</span>
-                        <span className="text-xs font-medium text-emerald-400">
-                            +{stats.completion_rate.toFixed(0)}%
-                        </span>
+                {/* Weekly Chart */}
+                <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                        <BarChart3 className="h-4 w-4 text-emerald-400" />
+                        <h3 className="text-sm font-medium text-slate-300">Bu Hafta</h3>
                     </div>
-                    <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-bold text-slate-50">
-                            {stats.completed_tasks_count}
-                        </span>
-                        {stats.completed_tasks_count > 0 && (
-                            <TrendingUp className="h-4 w-4 text-emerald-400" />
-                        )}
+                    <div className="h-40 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={dailyData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                                <XAxis
+                                    dataKey="day"
+                                    stroke="#64748b"
+                                    fontSize={12}
+                                    tickLine={false}
+                                />
+                                <YAxis
+                                    stroke="#64748b"
+                                    fontSize={12}
+                                    tickLine={false}
+                                    allowDecimals={false}
+                                />
+                                <Tooltip
+                                    contentStyle={{
+                                        backgroundColor: '#1e293b',
+                                        border: '1px solid #334155',
+                                        borderRadius: '8px',
+                                        fontSize: '12px'
+                                    }}
+                                    labelStyle={{ color: '#e2e8f0' }}
+                                    itemStyle={{ color: '#10b981' }}
+                                />
+                                <Bar
+                                    dataKey="count"
+                                    fill="#10b981"
+                                    radius={[4, 4, 0, 0]}
+                                    name="Tamamlanan"
+                                />
+                            </BarChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
 
-                {/* Focus Hours */}
-                <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs text-slate-500">Odaklanma Saatleri</span>
+                {/* Stats Summary */}
+                <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-800">
+                    {/* Completed Tasks */}
+                    <div className="space-y-1">
+                        <span className="text-xs text-slate-500">Tamamlanan</span>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-xl font-bold text-slate-50">
+                                {stats.completed_tasks_count}
+                            </span>
+                            {stats.completed_tasks_count > 0 && (
+                                <TrendingUp className="h-3 w-3 text-emerald-400" />
+                            )}
+                        </div>
                     </div>
-                    <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-bold text-slate-50">
-                            {stats.focus_hours}
-                        </span>
-                        {stats.focus_hours > 0 && (
-                            <TrendingUp className="h-4 w-4 text-emerald-400" />
-                        )}
-                    </div>
-                </div>
 
-                {/* Streak Days */}
-                <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                        <span className="text-xs text-slate-500">Seri Günleri</span>
+                    {/* Focus Hours */}
+                    <div className="space-y-1">
+                        <span className="text-xs text-slate-500">Odaklanma</span>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-xl font-bold text-slate-50">
+                                {stats.focus_hours}
+                            </span>
+                            <span className="text-xs text-slate-500">sa</span>
+                        </div>
                     </div>
-                    <div className="flex items-baseline gap-2">
-                        <span className="text-2xl font-bold text-slate-50">
-                            {stats.streak_days}
-                        </span>
-                        {stats.streak_days > 0 && (
+
+                    {/* Streak Days */}
+                    <div className="space-y-1">
+                        <span className="text-xs text-slate-500">Seri</span>
+                        <div className="flex items-baseline gap-1">
+                            <span className="text-xl font-bold text-slate-50">
+                                {stats.streak_days}
+                            </span>
                             <span className="text-xs text-slate-500">gün</span>
-                        )}
+                        </div>
                     </div>
                 </div>
 
                 {/* Achievements */}
-                <div className="mt-8 pt-6 border-t border-slate-800">
+                <div className="pt-4 border-t border-slate-800">
                     <div className="flex items-center gap-2 mb-3">
                         <Award className="h-4 w-4 text-yellow-500" />
                         <h3 className="text-sm font-medium text-slate-300">Başarılar</h3>

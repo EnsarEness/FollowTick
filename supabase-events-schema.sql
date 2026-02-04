@@ -5,6 +5,7 @@ create table public.events (
   name text not null,
   deadline timestamp with time zone not null,
   location text not null,
+  type text default 'hackathon' check (type in ('hackathon', 'internship', 'course', 'other')),
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

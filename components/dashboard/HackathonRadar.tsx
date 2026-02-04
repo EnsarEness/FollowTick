@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Radar, Calendar, MapPin, Plus, Loader2, AlertCircle } from "lucide-react";
+import { Radar, Calendar, MapPin, Plus, Loader2, AlertCircle, Trash2 } from "lucide-react";
 import { supabase, Event } from "@/lib/supabaseClient";
 import { AddEventDialog } from "./AddEventDialog";
 
@@ -17,6 +17,7 @@ export function HackathonRadar() {
             const { data, error: fetchError } = await supabase
                 .from("events")
                 .select("*")
+                .in("type", ["hackathon", "internship"]) // Only show hackathon/internship
                 .order("deadline", { ascending: true });
 
             if (fetchError) throw fetchError;
@@ -27,6 +28,25 @@ export function HackathonRadar() {
             setError(true);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const deleteEvent = async (id: string, name: string) => {
+        if (!confirm(`"${name}" etkinliğini silmek istediğinize emin misiniz?`)) {
+            return;
+        }
+
+        try {
+            const { error } = await supabase
+                .from("events")
+                .delete()
+                .eq("id", id);
+
+            if (error) throw error;
+            fetchEvents(); // Refresh list
+        } catch (err) {
+            console.error("Error deleting event:", err);
+            alert("Etkinlik silinirken hata oluştu");
         }
     };
 
@@ -116,11 +136,23 @@ export function HackathonRadar() {
                                         <h3 className="text-sm font-medium text-slate-200 flex-1">
                                             {event.name}
                                         </h3>
-                                        {isUrgent && (
-                                            <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30 rounded">
-                                                Urgent
-                                            </span>
-                                        )}
+                                        <div className="flex items-center gap-2">
+                                            {isUrgent && (
+                                                <span className="px-2 py-0.5 text-xs font-medium bg-red-500/20 text-red-400 border border-red-500/30 rounded">
+                                                    Urgent
+                                                </span>
+                                            )}
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    deleteEvent(event.id, event.name);
+                                                }}
+                                                className="p-1 rounded hover:bg-red-500/10 text-slate-500 hover:text-red-400 transition-colors"
+                                                title="Sil"
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div className="flex items-center gap-3 text-xs text-slate-500 mb-2">

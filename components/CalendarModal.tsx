@@ -40,6 +40,7 @@ export function CalendarModal({ isOpen, onClose }: CalendarModalProps) {
     const [startTime, setStartTime] = useState("");
     const [endTime, setEndTime] = useState("");
     const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+    const [eventType, setEventType] = useState<"hackathon" | "internship" | "course" | "other">("hackathon");
 
     useEffect(() => {
         if (isOpen) {
@@ -100,6 +101,7 @@ export function CalendarModal({ isOpen, onClose }: CalendarModalProps) {
 
                 const { error } = await supabase.from("events").insert({
                     name: newItemTitle,
+                    type: eventType,
                     deadline: endDate ? endDate.toISOString() : selectedDate.toISOString(),
                     user_id: mockUserId,
                     location: timeRange || newItemTime || null,
@@ -115,6 +117,7 @@ export function CalendarModal({ isOpen, onClose }: CalendarModalProps) {
             setStartTime("");
             setEndTime("");
             setEndDate(undefined);
+            setEventType("hackathon");
             setShowAddForm(false);
 
             // Refresh data
@@ -342,8 +345,8 @@ export function CalendarModal({ isOpen, onClose }: CalendarModalProps) {
                                                 type="button"
                                                 onClick={() => setTaskType("big")}
                                                 className={`flex-1 px-3 py-2 rounded text-xs font-medium transition-colors ${taskType === "big"
-                                                        ? "bg-purple-600 text-white"
-                                                        : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                                                    ? "bg-purple-600 text-white"
+                                                    : "bg-slate-800 text-slate-400 hover:bg-slate-700"
                                                     }`}
                                             >
                                                 🎯 Big
@@ -352,8 +355,8 @@ export function CalendarModal({ isOpen, onClose }: CalendarModalProps) {
                                                 type="button"
                                                 onClick={() => setTaskType("medium")}
                                                 className={`flex-1 px-3 py-2 rounded text-xs font-medium transition-colors ${taskType === "medium"
-                                                        ? "bg-blue-600 text-white"
-                                                        : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                                                    ? "bg-blue-600 text-white"
+                                                    : "bg-slate-800 text-slate-400 hover:bg-slate-700"
                                                     }`}
                                             >
                                                 📋 Medium
@@ -362,8 +365,8 @@ export function CalendarModal({ isOpen, onClose }: CalendarModalProps) {
                                                 type="button"
                                                 onClick={() => setTaskType("small")}
                                                 className={`flex-1 px-3 py-2 rounded text-xs font-medium transition-colors ${taskType === "small"
-                                                        ? "bg-emerald-600 text-white"
-                                                        : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                                                    ? "bg-emerald-600 text-white"
+                                                    : "bg-slate-800 text-slate-400 hover:bg-slate-700"
                                                     }`}
                                             >
                                                 ✅ Small
@@ -375,6 +378,21 @@ export function CalendarModal({ isOpen, onClose }: CalendarModalProps) {
                                 {/* Event Time Range (only for events) */}
                                 {newItemType === "event" && (
                                     <>
+                                        {/* Event Type Selector */}
+                                        <div>
+                                            <label className="text-xs text-slate-400 mb-1 block">Event Type</label>
+                                            <select
+                                                value={eventType}
+                                                onChange={(e) => setEventType(e.target.value as any)}
+                                                className="w-full px-3 py-2 rounded bg-slate-800 border border-slate-600 text-slate-200 text-sm focus:outline-none focus:border-purple-500"
+                                            >
+                                                <option value="hackathon">🏆 Hackathon</option>
+                                                <option value="internship">💼 Internship</option>
+                                                <option value="course">🎓 Course</option>
+                                                <option value="other">📅 Other</option>
+                                            </select>
+                                        </div>
+
                                         <div className="grid grid-cols-2 gap-2">
                                             <div>
                                                 <label className="text-xs text-slate-400 mb-1 block">Start Time</label>
