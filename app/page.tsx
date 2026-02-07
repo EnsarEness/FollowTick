@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Timer, Calendar } from "lucide-react";
+import { Timer, Calendar, Briefcase } from "lucide-react";
+import Link from "next/link";
 import { MorningBriefing } from "@/components/dashboard/MorningBriefing";
 import { HackathonRadar } from "@/components/dashboard/HackathonRadar";
 import { TodaysMission } from "@/components/dashboard/TodaysMission";
@@ -35,6 +36,13 @@ export default function Home() {
             </div>
 
             <div className="flex items-center gap-3">
+              <Link
+                href="/applications"
+                className="flex items-center gap-2 rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700 transition-colors border border-slate-700"
+              >
+                <Briefcase className="h-4 w-4" />
+                Başvurularım
+              </Link>
               <button
                 onClick={() => setShowCalendar(true)}
                 className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"

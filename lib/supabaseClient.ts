@@ -43,3 +43,16 @@ export interface WeeklyStats {
     streak_days: number;
     completion_rate: number;
 }
+
+export interface Application {
+    id: string;
+    user_id: string;
+    title: string;
+    type: 'internship' | 'hackathon' | 'ideathon' | 'career_day' | 'course';
+    status: 'planned' | 'pending' | 'approved' | 'rejected';
+    announcement_date?: string;
+    deadline?: string;
+    event_date?: string;
+    notes?: string;
+    created_at: string;
+}
