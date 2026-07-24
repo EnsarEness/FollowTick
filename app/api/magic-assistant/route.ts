@@ -2,16 +2,21 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import OpenAI from "openai";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
-const openai = new OpenAI({
-    apiKey: process.env.OPENAI_API_KEY,
-});
-
 export async function POST(req: NextRequest) {
     try {
+        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+        
+        if (!supabaseUrl || !supabaseKey) {
+            return NextResponse.json({ error: "Supabase configuration is missing" }, { status: 500 });
+        }
+        
+        const supabase = createClient(supabaseUrl, supabaseKey);
+
+        const openai = new OpenAI({
+            apiKey: process.env.OPENAI_API_KEY,
+        });
+
         const { text, noteId } = await req.json();
 
         if (!text) {
@@ -52,8 +57,6 @@ export async function POST(req: NextRequest) {
         If a category is empty, return an empty array.
         `;
 
-        console.log("Sending request to OpenAI with text:", text);
-
         const completion = await openai.chat.completions.create({
             messages: [
                 { role: "system", content: systemPrompt },
@@ -65,7 +68,6 @@ export async function POST(req: NextRequest) {
         });
 
         const resultText = completion.choices[0].message.content;
-        console.log("OpenAI Raw Response:", resultText);
 
         if (!resultText) throw new Error("No response from AI");
 
@@ -73,12 +75,8 @@ export async function POST(req: NextRequest) {
         try {
             parsedData = JSON.parse(resultText);
         } catch (jsonError) {
-            console.error("JSON Parse Error:", jsonError);
-            console.error("Failed Text:", resultText);
             throw new Error("AI returned invalid JSON");
         }
-
-        console.log("Parsed Data:", JSON.stringify(parsedData, null, 2));
 
         // --- Process Executions (Supabase) ---
         const results = {
@@ -92,7 +90,6 @@ export async function POST(req: NextRequest) {
 
         // 1. Insert Events
         if (parsedData.events && Array.isArray(parsedData.events) && parsedData.events.length > 0) {
-            console.log("Inserting events:", parsedData.events.length);
             const { error } = await supabase.from('events').insert(
                 parsedData.events.map((e: any) => ({
                     user_id: mockUserId,
@@ -102,12 +99,7 @@ export async function POST(req: NextRequest) {
                     type: e.type || 'other'
                 }))
             );
-            if (!error) {
-                results.events = parsedData.events.length;
-            } else {
-                console.error("Error creating events in Supabase:", error);
-                throw error; // Rethrow to inform user clearly
-            }
+            if (!error) results.events = parsedData.events.length;
         }
 
         // 2. Insert Todos
@@ -120,12 +112,7 @@ export async function POST(req: NextRequest) {
                     completed: false
                 }))
             );
-            if (!error) {
-                results.todos = parsedData.todos.length;
-            } else {
-                console.error("Error creating todos:", error);
-                throw error;
-            }
+            if (!error) results.todos = parsedData.todos.length;
         }
 
         // 3. Insert Resources
@@ -140,12 +127,7 @@ export async function POST(req: NextRequest) {
                     status: 'to_read'
                 }))
             );
-            if (!error) {
-                results.resources = parsedData.resources.length;
-            } else {
-                console.error("Error creating resources:", error);
-                // Don't throw for resources as table might be missing
-            }
+            if (!error) results.resources = parsedData.resources.length;
         }
 
         // 4. Update Note (If everything processed)
@@ -156,7 +138,6 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ success: true, results, parsedData });
 
     } catch (error: any) {
-        console.error("Magic Assistant Error:", error);
         return NextResponse.json(
             { error: error.message || "Something went wrong" },
             { status: 500 }
