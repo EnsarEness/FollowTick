@@ -16,8 +16,10 @@ export function WeeklyReview() {
     const [dailyData, setDailyData] = useState<DailyCompletion[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(false);
+    const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        setMounted(true);
         fetchWeeklyStats();
         fetchDailyCompletions();
     }, []);
@@ -115,6 +117,24 @@ export function WeeklyReview() {
     const hasCompletionAchievement = stats.completion_rate > 80;
     const hasAnyAchievement = hasStreakAchievement || hasCompletionAchievement;
 
+    // Level System based on completed tasks
+    const getLevel = (completedCount: number) => {
+        if (completedCount === 0) {
+            return { name: "Acemi", emoji: "🌱", message: "Hoş geldin! İlk görevini tamamla", color: "text-slate-400", bg: "bg-slate-800/30", border: "border-slate-700" };
+        } else if (completedCount < 5) {
+            return { name: "Çaylak", emoji: "🔰", message: "İyi başlangıç! Devam et", color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" };
+        } else if (completedCount < 15) {
+            return { name: "Deneyimli", emoji: "⚡", message: "Harika gidiyorsun!", color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" };
+        } else if (completedCount < 30) {
+            return { name: "Usta", emoji: "🏆", message: "Çok üretkensin!", color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" };
+        } else {
+            return { name: "Efsane", emoji: "👑", message: "Verimlilik kralısın!", color: "text-orange-400", bg: "bg-gradient-to-r from-orange-500/10 to-red-500/10", border: "border-orange-500/20" };
+        }
+    };
+
+    const currentLevel = getLevel(stats.completed_tasks_count);
+
+
     return (
         <div className="rounded-lg border border-slate-800 bg-slate-900/50 p-6 h-full">
             <div className="flex items-center gap-2 mb-6">
@@ -130,39 +150,53 @@ export function WeeklyReview() {
                         <h3 className="text-sm font-medium text-slate-300">Bu Hafta</h3>
                     </div>
                     <div className="h-40 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={dailyData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
-                                <XAxis
-                                    dataKey="day"
-                                    stroke="#64748b"
-                                    fontSize={12}
-                                    tickLine={false}
-                                />
-                                <YAxis
-                                    stroke="#64748b"
-                                    fontSize={12}
-                                    tickLine={false}
-                                    allowDecimals={false}
-                                />
-                                <Tooltip
-                                    contentStyle={{
-                                        backgroundColor: '#1e293b',
-                                        border: '1px solid #334155',
-                                        borderRadius: '8px',
-                                        fontSize: '12px'
-                                    }}
-                                    labelStyle={{ color: '#e2e8f0' }}
-                                    itemStyle={{ color: '#10b981' }}
-                                />
-                                <Bar
-                                    dataKey="count"
-                                    fill="#10b981"
-                                    radius={[4, 4, 0, 0]}
-                                    name="Tamamlanan"
-                                />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        <div className="h-[180px] w-full mt-2">
+                            {dailyData.length > 0 && mounted ? (
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={dailyData} margin={{ top: 5, right: 5, bottom: 5, left: -20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} vertical={false} />
+                                        <XAxis
+                                            dataKey="day"
+                                            stroke="#64748b"
+                                            fontSize={10}
+                                            tickLine={false}
+                                            axisLine={false}
+                                            tick={{ dy: 10 }}
+                                        />
+                                        <YAxis
+                                            stroke="#64748b"
+                                            fontSize={10}
+                                            tickLine={false}
+                                            axisLine={false}
+                                            allowDecimals={false}
+                                        />
+                                        <Tooltip
+                                            cursor={{ fill: '#334155', opacity: 0.1 }}
+                                            contentStyle={{
+                                                backgroundColor: '#1e293b',
+                                                border: '1px solid #334155',
+                                                borderRadius: '8px',
+                                                fontSize: '12px',
+                                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                            }}
+                                            labelStyle={{ color: '#e2e8f0', marginBottom: '4px' }}
+                                            itemStyle={{ color: '#10b981' }}
+                                        />
+                                        <Bar
+                                            dataKey="count"
+                                            fill="#10b981"
+                                            radius={[4, 4, 0, 0]}
+                                            name="Tamamlanan"
+                                            barSize={20}
+                                        />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            ) : (
+                                <div className="h-full flex items-center justify-center text-slate-500 text-xs">
+                                    Veri yok
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
 
@@ -211,35 +245,42 @@ export function WeeklyReview() {
                         <h3 className="text-sm font-medium text-slate-300">Başarılar</h3>
                     </div>
 
-                    {hasAnyAchievement ? (
-                        <div className="space-y-2">
-                            {hasStreakAchievement && (
-                                <div className="p-2 rounded bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20">
-                                    <p className="text-xs text-orange-400">
-                                        🔥 {stats.streak_days} günlük seri devam ediyor
-                                    </p>
+                    <div className="space-y-2">
+                        {/* Level Badge - Always visible */}
+                        <div className={`p-3 rounded border ${currentLevel.bg} ${currentLevel.border}`}>
+                            <div className="flex items-center justify-between mb-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-lg">{currentLevel.emoji}</span>
+                                    <span className={`text-sm font-semibold ${currentLevel.color}`}>
+                                        {currentLevel.name}
+                                    </span>
                                 </div>
-                            )}
-                            {hasCompletionAchievement && (
-                                <div className="p-2 rounded bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20">
-                                    <p className="text-xs text-blue-400">
-                                        ⚡ En verimli hafta ({stats.completion_rate.toFixed(0)}% tamamlama)
-                                    </p>
-                                </div>
-                            )}
+                                <span className="text-xs text-slate-500">Level</span>
+                            </div>
+                            <p className="text-xs text-slate-400">{currentLevel.message}</p>
                         </div>
-                    ) : (
-                        <div className="p-3 rounded bg-slate-800/30 border border-slate-800 text-center">
-                            <p className="text-xs text-slate-500">
-                                Henüz başarı kazanılmadı
-                            </p>
-                            <p className="text-xs text-slate-600 mt-1">
-                                3+ gün seri veya %80+ tamamlama hedefle!
-                            </p>
-                        </div>
-                    )}
+
+                        {/* Streak Achievement */}
+                        {hasStreakAchievement && (
+                            <div className="p-2 rounded bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20">
+                                <p className="text-xs text-orange-400">
+                                    🔥 {stats.streak_days} günlük seri devam ediyor
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Completion Achievement */}
+                        {hasCompletionAchievement && (
+                            <div className="p-2 rounded bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20">
+                                <p className="text-xs text-blue-400">
+                                    ⚡ En verimli hafta ({stats.completion_rate.toFixed(0)}% tamamlama)
+                                </p>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
+
     );
 }

@@ -23,6 +23,17 @@ export function AddEventDialog({ isOpen, onClose, onEventAdded }: AddEventDialog
         setLoading(true);
 
         try {
+            // Validate that the deadline is not in the past
+            const selectedDate = new Date(deadline);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+
+            if (selectedDate < today) {
+                setError("Geçmiş tarihlere etkinlik ekleyemezsiniz. Lütfen bugün veya gelecek bir tarih seçin.");
+                setLoading(false);
+                return;
+            }
+
             // For now, we'll use a mock user_id since auth isn't set up yet
             // In production, you'd get this from auth.user()
             const mockUserId = "00000000-0000-0000-0000-000000000000";
@@ -100,6 +111,7 @@ export function AddEventDialog({ isOpen, onClose, onEventAdded }: AddEventDialog
                             type="date"
                             value={deadline}
                             onChange={(e) => setDeadline(e.target.value)}
+                            min={new Date().toISOString().split('T')[0]}
                             required
                             className="w-full rounded-md border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-200 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         />

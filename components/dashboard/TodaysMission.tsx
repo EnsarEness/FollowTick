@@ -170,8 +170,10 @@ export function TodaysMission({ focusMode = false }: TodaysMissionProps) {
     const activeEvents = events.filter(e => !e.completed);
     const completedEvents = events.filter(e => e.completed);
     const completedCount = completedTodos.length + completedEvents.length;
-    const totalCount = todos.length + events.length;
-    const progress = totalCount > 0 ? (completedCount / totalCount) * 100 : 0;
+
+    // Daily Goal is fixed to 10 based on user request (Big One + 3 Medium + 5 Small + Events approx 10)
+    const dailyGoal = 10;
+    const progress = Math.min((completedCount / dailyGoal) * 100, 100);
 
     const TodoItem = ({ todo, large = false }: { todo: Todo; large?: boolean }) => (
         <div
@@ -446,7 +448,7 @@ export function TodaysMission({ focusMode = false }: TodaysMissionProps) {
                 <div className="flex items-center justify-between text-sm mb-2">
                     <span className="text-slate-400">İlerleme</span>
                     <span className="text-slate-300 font-medium">
-                        {completedCount}/{totalCount} tamamlandı
+                        {completedCount}/{dailyGoal} tamamlandı
                     </span>
                 </div>
                 <div className="h-2 bg-slate-800 rounded-full overflow-hidden">

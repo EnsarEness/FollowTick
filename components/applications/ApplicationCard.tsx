@@ -2,7 +2,7 @@
 
 import { format } from "date-fns";
 import { tr } from "date-fns/locale";
-import { CheckCircle2, XCircle, Calendar, Clock, FileText, ChevronDown, ChevronUp, Send, AlertCircle } from "lucide-react";
+import { CheckCircle2, XCircle, Calendar, Clock, FileText, ChevronDown, ChevronUp, Send, AlertCircle, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Application, supabase } from "@/lib/supabaseClient";
 
@@ -18,9 +18,29 @@ export function ApplicationCard({ app, onUpdate }: ApplicationCardProps) {
     // Modals state
     const [showDatePrompt, setShowDatePrompt] = useState(false); // For approval
     const [showAppliedPrompt, setShowAppliedPrompt] = useState(false); // For moving from planned to pending
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false); // For inline delete confirmation
 
     const [eventDate, setEventDate] = useState("");
     const [announcementDate, setAnnouncementDate] = useState("");
+
+    const handleDelete = async () => {
+        try {
+            setLoading(true);
+            const { error } = await supabase
+                .from("applications")
+                .delete()
+                .eq("id", app.id);
+
+            if (error) throw error;
+            onUpdate();
+        } catch (err) {
+            console.error("Error deleting:", err);
+            alert("Silinirken hata oluştu.");
+        } finally {
+            setLoading(false);
+            setShowDeleteConfirm(false);
+        }
+    };
 
     const getTypeColor = (type: string) => {
         switch (type) {
@@ -144,9 +164,9 @@ export function ApplicationCard({ app, onUpdate }: ApplicationCardProps) {
 
     return (
         <div className={`rounded-lg border bg-slate-900/50 transition-all ${app.status === 'approved' ? 'border-emerald-500/30' :
-                app.status === 'rejected' ? 'border-red-500/30 opacity-60' :
-                    app.status === 'planned' ? 'border-yellow-500/30 bg-yellow-500/5' :
-                        'border-slate-800'
+            app.status === 'rejected' ? 'border-red-500/30 opacity-60' :
+                app.status === 'planned' ? 'border-yellow-500/30 bg-yellow-500/5' :
+                    'border-slate-800'
             }`}>
             {/* Main Content */}
             <div className="p-4 flex items-start gap-4">
@@ -167,51 +187,82 @@ export function ApplicationCard({ app, onUpdate }: ApplicationCardProps) {
 
                         {/* Status Badge or Actions */}
                         <div className="flex items-center gap-2">
-                            {/* Planned Actions */}
-                            {app.status === 'planned' && (
-                                <button
-                                    onClick={() => setShowAppliedPrompt(true)}
-                                    disabled={loading}
-                                    className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white transition-all text-xs font-medium border border-blue-600/20 hover:border-blue-600"
-                                    title="Başvuruyu Tamamla"
-                                >
-                                    <Send className="h-3 w-3" />
-                                    Başvur
-                                </button>
-                            )}
-
-                            {/* Pending Actions */}
-                            {app.status === 'pending' && (
-                                <>
+                            {/* Delete Action (Available for all statuses) */}
+                            {showDeleteConfirm ? (
+                                <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-5 duration-200">
+                                    <span className="text-xs text-slate-500 mr-1">Silinsin mi?</span>
                                     <button
-                                        onClick={() => setShowDatePrompt(true)}
-                                        disabled={loading}
-                                        className="p-2 rounded-full hover:bg-emerald-500/10 text-slate-400 hover:text-emerald-500 transition-colors"
-                                        title="Onayla"
+                                        onClick={handleDelete}
+                                        className="px-2 py-1 rounded bg-red-600/20 text-red-400 hover:bg-red-600 hover:text-white transition-colors text-xs font-medium"
                                     >
-                                        <CheckCircle2 className="h-5 w-5" />
+                                        Evet
                                     </button>
                                     <button
-                                        onClick={handleReject}
-                                        disabled={loading}
-                                        className="p-2 rounded-full hover:bg-red-500/10 text-slate-400 hover:text-red-500 transition-colors"
-                                        title="Reddet"
+                                        onClick={() => setShowDeleteConfirm(false)}
+                                        className="px-2 py-1 rounded bg-slate-700 text-slate-300 hover:bg-slate-600 transition-colors text-xs font-medium"
                                     >
-                                        <XCircle className="h-5 w-5" />
+                                        Hayır
+                                    </button>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* Planned Actions */}
+                                    {app.status === 'planned' && (
+                                        <button
+                                            onClick={() => setShowAppliedPrompt(true)}
+                                            disabled={loading}
+                                            className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white transition-all text-xs font-medium border border-blue-600/20 hover:border-blue-600"
+                                            title="Başvuruyu Tamamla"
+                                        >
+                                            <Send className="h-3 w-3" />
+                                            Başvur
+                                        </button>
+                                    )}
+
+                                    {/* Pending Actions */}
+                                    {app.status === 'pending' && (
+                                        <>
+                                            <button
+                                                onClick={() => setShowDatePrompt(true)}
+                                                disabled={loading}
+                                                className="p-2 rounded-full hover:bg-emerald-500/10 text-slate-400 hover:text-emerald-500 transition-colors"
+                                                title="Onayla"
+                                            >
+                                                <CheckCircle2 className="h-5 w-5" />
+                                            </button>
+                                            <button
+                                                onClick={handleReject}
+                                                disabled={loading}
+                                                className="p-2 rounded-full hover:bg-red-500/10 text-slate-400 hover:text-red-500 transition-colors"
+                                                title="Reddet"
+                                            >
+                                                <XCircle className="h-5 w-5" />
+                                            </button>
+                                        </>
+                                    )}
+
+                                    {/* Status Badges */}
+                                    {app.status === 'approved' && (
+                                        <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-500 ring-1 ring-inset ring-emerald-500/20">
+                                            Onaylandı
+                                        </span>
+                                    )}
+                                    {app.status === 'rejected' && (
+                                        <span className="inline-flex items-center rounded-full bg-red-500/10 px-2 py-1 text-xs font-medium text-red-500 ring-1 ring-inset ring-red-500/20">
+                                            Reddedildi
+                                        </span>
+                                    )}
+
+                                    {/* Delete Trigger Button */}
+                                    <button
+                                        onClick={() => setShowDeleteConfirm(true)}
+                                        disabled={loading}
+                                        className="p-2 rounded-full hover:bg-slate-800 text-slate-500 hover:text-red-400 transition-colors ml-1"
+                                        title="Sil"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
                                     </button>
                                 </>
-                            )}
-
-                            {/* Status Badges */}
-                            {app.status === 'approved' && (
-                                <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-500 ring-1 ring-inset ring-emerald-500/20">
-                                    Onaylandı
-                                </span>
-                            )}
-                            {app.status === 'rejected' && (
-                                <span className="inline-flex items-center rounded-full bg-red-500/10 px-2 py-1 text-xs font-medium text-red-500 ring-1 ring-inset ring-red-500/20">
-                                    Reddedildi
-                                </span>
                             )}
                         </div>
                     </div>

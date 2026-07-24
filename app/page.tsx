@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Timer, Calendar, Briefcase } from "lucide-react";
+import { Timer, Calendar, Briefcase, BookOpen } from "lucide-react";
 import Link from "next/link";
 import { MorningBriefing } from "@/components/dashboard/MorningBriefing";
 import { HackathonRadar } from "@/components/dashboard/HackathonRadar";
@@ -42,6 +42,13 @@ export default function Home() {
               >
                 <Briefcase className="h-4 w-4" />
                 Başvurularım
+              </Link>
+              <Link
+                href="/library"
+                className="flex items-center gap-2 rounded-lg bg-indigo-600/20 px-4 py-2 text-sm font-medium text-indigo-400 hover:bg-indigo-600 hover:text-white transition-colors border border-indigo-500/30"
+              >
+                <BookOpen className="h-4 w-4" />
+                Second Brain
               </Link>
               <button
                 onClick={() => setShowCalendar(true)}

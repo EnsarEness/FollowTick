@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar as CalendarIcon, X, Plus } from "lucide-react";
+import { Calendar as CalendarIcon, X, Plus, Trash2 } from "lucide-react";
 import { DayPicker } from "react-day-picker";
 import { format, isSameDay, startOfDay } from "date-fns";
 import { supabase } from "@/lib/supabaseClient";
@@ -42,6 +42,10 @@ export function CalendarModal({ isOpen, onClose }: CalendarModalProps) {
     const [endDate, setEndDate] = useState<Date | undefined>(undefined);
     const [eventType, setEventType] = useState<"hackathon" | "internship" | "course" | "other">("hackathon");
 
+    // Delete confirmation state
+    const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
+    const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+
     useEffect(() => {
         if (isOpen) {
             fetchAllData();
@@ -78,6 +82,17 @@ export function CalendarModal({ isOpen, onClose }: CalendarModalProps) {
         if (!newItemTitle.trim() || !selectedDate) return;
 
         try {
+            // Validate that the selected date is not in the past
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Reset time to start of day for accurate comparison
+            const selectedDateNormalized = new Date(selectedDate);
+            selectedDateNormalized.setHours(0, 0, 0, 0);
+
+            if (selectedDateNormalized < today) {
+                alert("Geçmiş tarihlere görev veya etkinlik ekleyemezsiniz. Lütfen bugün veya gelecek bir tarih seçin.");
+                return;
+            }
+
             const mockUserId = "00000000-0000-0000-0000-000000000000";
 
             if (newItemType === "task") {
@@ -124,6 +139,42 @@ export function CalendarModal({ isOpen, onClose }: CalendarModalProps) {
             await fetchAllData();
         } catch (err) {
             console.error("Error adding item:", err);
+        }
+    };
+
+    const handleDeleteEvent = async (eventId: string) => {
+        try {
+            const { error } = await supabase
+                .from("events")
+                .delete()
+                .eq("id", eventId);
+
+            if (error) throw error;
+
+            // Reset confirmation state and refresh data
+            setDeletingEventId(null);
+            await fetchAllData();
+        } catch (err) {
+            console.error("Error deleting event:", err);
+            alert("Etkinlik silinirken bir hata oluştu.");
+        }
+    };
+
+    const handleDeleteTask = async (taskId: string) => {
+        try {
+            const { error } = await supabase
+                .from("todos")
+                .delete()
+                .eq("id", taskId);
+
+            if (error) throw error;
+
+            // Reset confirmation state and refresh data
+            setDeletingTaskId(null);
+            await fetchAllData();
+        } catch (err) {
+            console.error("Error deleting task:", err);
+            alert("Görev silinirken bir hata oluştu.");
         }
     };
 
@@ -202,6 +253,14 @@ export function CalendarModal({ isOpen, onClose }: CalendarModalProps) {
                 font-weight: bold;
                 color: #60a5fa;
               }
+              .rdp-day_disabled {
+                color: #475569 !important;
+                opacity: 0.5;
+                cursor: not-allowed !important;
+              }
+              .rdp-day_disabled:hover {
+                background-color: transparent !important;
+              }
               .has-event::after {
                 content: '';
                 position: absolute;
@@ -229,6 +288,7 @@ export function CalendarModal({ isOpen, onClose }: CalendarModalProps) {
                             mode="single"
                             selected={selectedDate}
                             onSelect={setSelectedDate}
+                            disabled={{ before: new Date() }}
                             modifiers={{
                                 hasEvent: eventDates,
                                 hasTask: taskDates,
@@ -264,11 +324,40 @@ export function CalendarModal({ isOpen, onClose }: CalendarModalProps) {
                                     {selectedDateEvents.map((event) => (
                                         <div
                                             key={event.id}
-                                            className="p-2 rounded bg-red-500/10 border border-red-500/20"
+                                            className="p-2 rounded bg-red-500/10 border border-red-500/20 flex items-start justify-between gap-2"
                                         >
-                                            <p className="text-sm text-slate-200">{event.name}</p>
-                                            {event.location && (
-                                                <p className="text-xs text-slate-400 mt-1">{event.location}</p>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm text-slate-200">{event.name}</p>
+                                                {event.location && (
+                                                    <p className="text-xs text-slate-400 mt-1">{event.location}</p>
+                                                )}
+                                            </div>
+
+                                            {deletingEventId === event.id ? (
+                                                // Confirmation buttons
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => handleDeleteEvent(event.id)}
+                                                        className="px-3 py-1 rounded bg-red-600 text-white text-xs font-medium hover:bg-red-700 transition-colors"
+                                                    >
+                                                        Evet
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setDeletingEventId(null)}
+                                                        className="px-3 py-1 rounded bg-slate-600 text-white text-xs font-medium hover:bg-slate-500 transition-colors"
+                                                    >
+                                                        Hayır
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                // Delete button
+                                                <button
+                                                    onClick={() => setDeletingEventId(event.id)}
+                                                    className="flex-shrink-0 p-2 rounded hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors"
+                                                    title="Sil"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
                                             )}
                                         </div>
                                     ))}
@@ -284,9 +373,36 @@ export function CalendarModal({ isOpen, onClose }: CalendarModalProps) {
                                     {selectedDateTasks.map((task) => (
                                         <div
                                             key={task.id}
-                                            className="p-2 rounded bg-blue-500/10 border border-blue-500/20"
+                                            className="p-2 rounded bg-blue-500/10 border border-blue-500/20 flex items-center justify-between gap-2"
                                         >
-                                            <p className="text-sm text-slate-200">{task.title}</p>
+                                            <p className="text-sm text-slate-200 flex-1 min-w-0">{task.title}</p>
+
+                                            {deletingTaskId === task.id ? (
+                                                // Confirmation buttons
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => handleDeleteTask(task.id)}
+                                                        className="px-3 py-1 rounded bg-red-600 text-white text-xs font-medium hover:bg-red-700 transition-colors"
+                                                    >
+                                                        Evet
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setDeletingTaskId(null)}
+                                                        className="px-3 py-1 rounded bg-slate-600 text-white text-xs font-medium hover:bg-slate-500 transition-colors"
+                                                    >
+                                                        Hayır
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                // Delete button
+                                                <button
+                                                    onClick={() => setDeletingTaskId(task.id)}
+                                                    className="flex-shrink-0 p-2 rounded hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 transition-colors"
+                                                    title="Sil"
+                                                >
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            )}
                                         </div>
                                     ))}
                                 </div>

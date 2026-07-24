@@ -14,12 +14,6 @@ export function MorningBriefing() {
                 <WeatherWidget />
 
                 <DailyMotto />
-
-                <div className="mt-4 pt-4 border-t border-slate-800">
-                    <p className="text-xs text-slate-500">
-                        3 toplantı planlandı • Bugün 5 görev var
-                    </p>
-                </div>
             </div>
         </div>
     );
